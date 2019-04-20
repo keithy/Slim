@@ -57,5 +57,8 @@
             "phpunit",
             "phpcs"
         ]
+    },
+    "replace": {
+        "slim/slim":"3.12.0"
     }
 }
