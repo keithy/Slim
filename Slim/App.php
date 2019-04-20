@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Slim Framework (https://slimframework.com)
  *
@@ -6,6 +7,7 @@
  * @copyright Copyright (c) 2011-2017 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
+
 namespace Slim;
 
 use Exception;
@@ -42,8 +44,8 @@ use Slim\Interfaces\RouterInterface;
  * @property-read callable $notFoundHandler function($request, $response)
  * @property-read callable $notAllowedHandler function($request, $response, $allowedHttpMethods)
  */
-class App
-{
+class App {
+
     use MiddlewareAwareTrait;
 
     /**
@@ -60,9 +62,9 @@ class App
      */
     private $container;
 
-    /********************************************************************************
+    /*     * ******************************************************************************
      * Constructor
-     *******************************************************************************/
+     * ***************************************************************************** */
 
     /**
      * Create new application
@@ -70,8 +72,7 @@ class App
      * @param ContainerInterface|array $container Either a ContainerInterface or an associative array of app settings
      * @throws InvalidArgumentException when no container is provided that implements ContainerInterface
      */
-    public function __construct($container = [])
-    {
+    public function __construct($container = []) {
         if (is_array($container)) {
             $container = new Container($container);
         }
@@ -86,8 +87,7 @@ class App
      *
      * @return ContainerInterface
      */
-    public function getContainer()
-    {
+    public function getContainer() {
         return $this->container;
     }
 
@@ -100,8 +100,7 @@ class App
      *
      * @return static
      */
-    public function add($callable)
-    {
+    public function add($callable) {
         return $this->addMiddleware(new DeferredCallable($callable, $this->container));
     }
 
@@ -113,8 +112,7 @@ class App
      * @param  array $args
      * @return mixed
      */
-    public function __call($method, $args)
-    {
+    public function __call($method, $args) {
         if ($this->container->has($method)) {
             $obj = $this->container->get($method);
             if (is_callable($obj)) {
@@ -125,9 +123,9 @@ class App
         throw new \BadMethodCallException("Method $method is not a valid method");
     }
 
-    /********************************************************************************
+    /*     * ******************************************************************************
      * Router proxy methods
-     *******************************************************************************/
+     * ***************************************************************************** */
 
     /**
      * Add GET route
@@ -137,8 +135,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function get($pattern, $callable)
-    {
+    public function get($pattern, $callable) {
         return $this->map(['GET'], $pattern, $callable);
     }
 
@@ -150,8 +147,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function post($pattern, $callable)
-    {
+    public function post($pattern, $callable) {
         return $this->map(['POST'], $pattern, $callable);
     }
 
@@ -163,8 +159,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function put($pattern, $callable)
-    {
+    public function put($pattern, $callable) {
         return $this->map(['PUT'], $pattern, $callable);
     }
 
@@ -176,8 +171,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function patch($pattern, $callable)
-    {
+    public function patch($pattern, $callable) {
         return $this->map(['PATCH'], $pattern, $callable);
     }
 
@@ -189,8 +183,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function delete($pattern, $callable)
-    {
+    public function delete($pattern, $callable) {
         return $this->map(['DELETE'], $pattern, $callable);
     }
 
@@ -202,8 +195,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function options($pattern, $callable)
-    {
+    public function options($pattern, $callable) {
         return $this->map(['OPTIONS'], $pattern, $callable);
     }
 
@@ -215,8 +207,7 @@ class App
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function any($pattern, $callable)
-    {
+    public function any($pattern, $callable) {
         return $this->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $callable);
     }
 
@@ -229,8 +220,7 @@ class App
      *
      * @return RouteInterface
      */
-    public function map(array $methods, $pattern, $callable)
-    {
+    public function map(array $methods, $pattern, $callable) {
         if ($callable instanceof Closure) {
             $callable = $callable->bindTo($this->container);
         }
@@ -256,10 +246,9 @@ class App
      *
      * @return RouteInterface
      */
-    public function redirect($from, $to, $status = 302)
-    {
+    public function redirect($from, $to, $status = 302) {
         $handler = function ($request, ResponseInterface $response) use ($to, $status) {
-            return $response->withHeader('Location', (string)$to)->withStatus($status);
+            return $response->withHeader('Location', (string) $to)->withStatus($status);
         };
 
         return $this->get($from, $handler);
@@ -277,8 +266,7 @@ class App
      *
      * @return RouteGroupInterface
      */
-    public function group($pattern, $callable)
-    {
+    public function group($pattern, $callable) {
         /** @var RouteGroup $group */
         $group = $this->container->get('router')->pushGroup($pattern, $callable);
         $group->setContainer($this->container);
@@ -287,9 +275,9 @@ class App
         return $group;
     }
 
-    /********************************************************************************
+    /*     * ******************************************************************************
      * Runner
-     *******************************************************************************/
+     * ***************************************************************************** */
 
     /**
      * Run application
@@ -304,13 +292,13 @@ class App
      * @throws MethodNotAllowedException
      * @throws NotFoundException
      */
-    public function run($silent = false)
-    {
-        $response = $this->container->get('response');
+    public function run($request = null, $response = null, $silent = false) {
+        $response = $response ?? $this->container->get('response');
 
         try {
             ob_start();
-            $response = $this->process($this->container->get('request'), $response);
+            $request = $request ?? $this->container->get('request');
+            $response = $this->process($request, $response);
         } catch (InvalidMethodException $e) {
             $response = $this->processInvalidMethod($e->getRequest(), $response);
         } finally {
@@ -351,8 +339,7 @@ class App
      * @param ResponseInterface $response
      * @return ResponseInterface
      */
-    protected function processInvalidMethod(ServerRequestInterface $request, ResponseInterface $response)
-    {
+    protected function processInvalidMethod(ServerRequestInterface $request, ResponseInterface $response) {
         $router = $this->container->get('router');
         if (is_callable([$request->getUri(), 'getBasePath']) && is_callable([$router, 'setBasePath'])) {
             $router->setBasePath($request->getUri()->getBasePath());
@@ -363,9 +350,9 @@ class App
 
         if ($routeInfo[RouterInterface::DISPATCH_STATUS] === Dispatcher::METHOD_NOT_ALLOWED) {
             return $this->handleException(
-                new MethodNotAllowedException($request, $response, $routeInfo[RouterInterface::ALLOWED_METHODS]),
-                $request,
-                $response
+                            new MethodNotAllowedException($request, $response, $routeInfo[RouterInterface::ALLOWED_METHODS]),
+                            $request,
+                            $response
             );
         }
 
@@ -386,8 +373,7 @@ class App
      * @throws MethodNotAllowedException
      * @throws NotFoundException
      */
-    public function process(ServerRequestInterface $request, ResponseInterface $response)
-    {
+    public function process(ServerRequestInterface $request, ResponseInterface $response) {
         // Ensure basePath is set
         $router = $this->container->get('router');
         if (is_callable([$request->getUri(), 'getBasePath']) && is_callable([$router, 'setBasePath'])) {
@@ -417,8 +403,7 @@ class App
      *
      * @param ResponseInterface $response
      */
-    public function respond(ResponseInterface $response)
-    {
+    public function respond(ResponseInterface $response) {
         // Send response
         if (!headers_sent()) {
             // Headers
@@ -432,14 +417,13 @@ class App
 
             // Set the status _after_ the headers, because of PHP's "helpful" behavior with location headers.
             // See https://github.com/slimphp/Slim/issues/1730
-
             // Status
             header(sprintf(
-                'HTTP/%s %s %s',
-                $response->getProtocolVersion(),
-                $response->getStatusCode(),
-                $response->getReasonPhrase()
-            ), true, $response->getStatusCode());
+                            'HTTP/%s %s %s',
+                            $response->getProtocolVersion(),
+                            $response->getStatusCode(),
+                            $response->getReasonPhrase()
+                    ), true, $response->getStatusCode());
         }
 
         // Body
@@ -449,10 +433,10 @@ class App
             if ($body->isSeekable()) {
                 $body->rewind();
             }
-            $settings       = $this->container->get('settings');
-            $chunkSize      = $settings['responseChunkSize'];
+            $settings = $this->container->get('settings');
+            $chunkSize = $settings['responseChunkSize'];
 
-            $contentLength  = $response->getHeaderLine('Content-Length');
+            $contentLength = $response->getHeaderLine('Content-Length');
             if (!$contentLength) {
                 $contentLength = $body->getSize();
             }
@@ -461,7 +445,7 @@ class App
             if (isset($contentLength)) {
                 $amountToRead = $contentLength;
                 while ($amountToRead > 0 && !$body->eof()) {
-                    $data = $body->read(min((int)$chunkSize, (int)$amountToRead));
+                    $data = $body->read(min((int) $chunkSize, (int) $amountToRead));
                     echo $data;
 
                     $amountToRead -= strlen($data);
@@ -472,7 +456,7 @@ class App
                 }
             } else {
                 while (!$body->eof()) {
-                    echo $body->read((int)$chunkSize);
+                    echo $body->read((int) $chunkSize);
                     if (connection_status() != CONNECTION_NORMAL) {
                         break;
                     }
@@ -496,8 +480,7 @@ class App
      * @throws MethodNotAllowedException
      * @throws NotFoundException
      */
-    public function __invoke(ServerRequestInterface $request, ResponseInterface $response)
-    {
+    public function __invoke(ServerRequestInterface $request, ResponseInterface $response) {
         // Get the route info
         $routeInfo = $request->getAttribute('routeInfo');
 
@@ -549,13 +532,13 @@ class App
      * @return ResponseInterface
      */
     public function subRequest(
-        $method,
-        $path,
-        $query = '',
-        array $headers = [],
-        array $cookies = [],
-        $bodyContent = '',
-        ResponseInterface $response = null
+            $method,
+            $path,
+            $query = '',
+            array $headers = [],
+            array $cookies = [],
+            $bodyContent = '',
+            ResponseInterface $response = null
     ) {
         $env = $this->container->get('environment');
         $uri = Uri::createFromEnvironment($env)->withPath($path)->withQuery($query);
@@ -580,8 +563,7 @@ class App
      * @param RouterInterface        $router
      * @return ServerRequestInterface
      */
-    protected function dispatchRouterAndPrepareRoute(ServerRequestInterface $request, RouterInterface $router)
-    {
+    protected function dispatchRouterAndPrepareRoute(ServerRequestInterface $request, RouterInterface $router) {
         $routeInfo = $router->dispatch($request);
 
         if ($routeInfo[0] === Dispatcher::FOUND) {
@@ -608,8 +590,7 @@ class App
      * @param ResponseInterface $response
      * @return ResponseInterface
      */
-    protected function finalize(ResponseInterface $response)
-    {
+    protected function finalize(ResponseInterface $response) {
         // stop PHP sending a Content-Type automatically
         ini_set('default_mimetype', '');
 
@@ -620,10 +601,10 @@ class App
 
         // Add Content-Length header if `addContentLengthHeader` setting is set
         if (isset($this->container->get('settings')['addContentLengthHeader']) &&
-            $this->container->get('settings')['addContentLengthHeader'] == true) {
+                $this->container->get('settings')['addContentLengthHeader'] == true) {
             if (ob_get_length() > 0) {
                 throw new \RuntimeException("Unexpected data in output buffer. " .
-                    "Maybe you have characters before an opening <?php tag?");
+                        "Maybe you have characters before an opening <?php tag?");
             }
             $size = $response->getBody()->getSize();
             if ($size !== null && !$response->hasHeader('Content-Length')) {
@@ -648,8 +629,7 @@ class App
      * @param ResponseInterface $response
      * @return bool
      */
-    protected function isEmptyResponse(ResponseInterface $response)
-    {
+    protected function isEmptyResponse(ResponseInterface $response) {
         if (method_exists($response, 'isEmpty')) {
             return $response->isEmpty();
         }
@@ -664,8 +644,7 @@ class App
      *
      * @return bool
      */
-    protected function isHeadRequest(RequestInterface $request)
-    {
+    protected function isHeadRequest(RequestInterface $request) {
         return strtoupper($request->getMethod()) === 'HEAD';
     }
 
@@ -680,8 +659,7 @@ class App
      * @return ResponseInterface
      * @throws Exception if a handler is needed and not found
      */
-    protected function handleException(Exception $e, ServerRequestInterface $request, ResponseInterface $response)
-    {
+    protected function handleException(Exception $e, ServerRequestInterface $request, ResponseInterface $response) {
         if ($e instanceof MethodNotAllowedException) {
             $handler = 'notAllowedHandler';
             $params = [$e->getRequest(), $e->getResponse(), $e->getAllowedMethods()];
@@ -717,8 +695,7 @@ class App
      * @return ResponseInterface
      * @throws Throwable
      */
-    protected function handlePhpError(Throwable $e, ServerRequestInterface $request, ResponseInterface $response)
-    {
+    protected function handlePhpError(Throwable $e, ServerRequestInterface $request, ResponseInterface $response) {
         $handler = 'phpErrorHandler';
         $params = [$request, $response, $e];
 
@@ -731,4 +708,5 @@ class App
         // No handlers found, so just throw the exception
         throw $e;
     }
+
 }
